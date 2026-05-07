@@ -25,3 +25,7 @@ dist-ssr
 
 # Temporary exports from Figma API
 figma-*.json
+
+# Django local artifacts
+backend/db.sqlite3
+**/__pycache__/

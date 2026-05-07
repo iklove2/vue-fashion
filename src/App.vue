@@ -1,3 +1,32 @@
+<script setup>
+import { onMounted, ref } from 'vue'
+
+const cards = ref([])
+
+const bitmapToDataUri = (bitmapBase64) => {
+  if (!bitmapBase64) return ''
+  if (bitmapBase64.startsWith('data:image')) return bitmapBase64
+  return `data:image/bmp;base64,${bitmapBase64}`
+}
+
+const loadCards = async () => {
+  try {
+    const response = await fetch('/api/cards/')
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+
+    const data = await response.json()
+    cards.value = Array.isArray(data.items) ? data.items : []
+  } catch (error) {
+    console.error('Failed to load cards:', error)
+    cards.value = []
+  }
+}
+
+onMounted(() => {
+  loadCards()
+})
+</script>
+
 <template>
   <div class="page">
     <header class="topbar">
@@ -72,19 +101,19 @@
         <p>Shop for items based on what we featured this week</p>
       </div>
       <div class="grid">
-        <article v-for="n in 6" :key="n" class="product">
-          <div class="thumb">
+        <article v-for="card in cards" :key="card.id" class="product">
+          <div class="thumb" :style="{ backgroundImage: `url(${bitmapToDataUri(card.picture)})` }">
             <div class="thumbOverlay">
               <button class="addToCart">Add to Cart</button>
             </div>
           </div>
           <div class="content">
-            <h3>ELLERY X M'O CAPSULE</h3>
-            <p>
-              Known for her sculptural takes on traditional tailoring, Australian arbiter of cool
-              Kym Ellery teams up with Moda Operandi.
-            </p>
-            <strong>$52.00</strong>
+            <h3>
+              {{ card.annotation }}
+              <span v-if="card.discount"> -{{ card.discount }}%</span>
+            </h3>
+            <p>{{ card.description }}</p>
+            <strong>${{ card.price }}</strong>
           </div>
         </article>
       </div>
