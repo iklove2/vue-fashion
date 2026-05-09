@@ -7,7 +7,8 @@
 - Vue 3
 - Vite
 - CSS
-- Docker + Nginx
+- Django + SQLite
+- Docker Compose + Nginx
 
 ## Запуск локально
 
@@ -16,84 +17,78 @@ npm install
 npm run dev
 ```
 
-## Docker
+## Docker (frontend + backend)
 
 ```bash
+# first run only
+cp .env.example .env
+
+# start
 docker compose up -d --build
 ```
 
-## Backend API: Feedback form
+По умолчанию приложение будет доступно на `http://localhost:8081`.
 
-### Endpoint
+### Настройка портов и домена
 
-- `POST /api/feedback`
+Если на сервере уже крутится другой Django/прокси, просто поменяй порт фронта в `.env`:
 
-Создает обращение из формы обратной связи.
+```env
+WEB_PORT=8081
+DEBUG=False
+ALLOWED_HOSTS=your-domain.com,localhost,127.0.0.1
+```
 
-### Request headers
+- `WEB_PORT` - внешний порт контейнера `web` (меняй, чтобы не конфликтовать с другими сервисами).
+- `DEBUG` - режим Django.
+- `ALLOWED_HOSTS` - разрешенные хосты Django (через запятую).
 
-- `Content-Type: application/json`
+`backend` не публикуется наружу и доступен только внутри docker-сети, поэтому с другими Django по порту `8000` не конфликтует.
 
-### Request body
+### Полезные команды
 
-```json
-{
-  "name": "Иван",
-  "email": "ivan@mail.com",
-  "message": "Хочу демо и оценку стоимости."
+```bash
+# Остановить контейнеры
+docker compose down
+
+# Остановить и удалить volume с SQLite
+docker compose down -v
+
+# Логи
+docker compose logs -f
+```
+
+### Пример для внешнего nginx в docker
+
+Если у тебя уже есть отдельный nginx-контейнер как reverse proxy, проксируй на:
+
+- `http://<host-ip>:WEB_PORT`
+
+Например, при `WEB_PORT=8081`:
+
+```nginx
+location / {
+    proxy_pass http://host.docker.internal:8081;
 }
 ```
 
-### Validation requirements
+## API endpoints
 
-- `name`
-  - required
-  - string, trimmed
-  - length: 2..60
-  - allowed chars: letters (RU/EN), space, hyphen, apostrophe
-- `email`
-  - required
-  - string, trimmed, lowercase
-  - length: 5..254
-  - valid email format
-  - no spaces
-- `message`
-  - optional
-  - string, trimmed
-  - length: 0..1000
-  - if provided, must not be only spaces
-
-### Responses
-
-- `201 Created`
+- `GET /api/` - описание API.
+- `GET /api/cards/` - карточки в формате JSON:
 
 ```json
 {
-  "ok": true,
-  "id": "fb_123",
-  "message": "Спасибо! Мы свяжемся с вами."
-}
-```
-
-- `400 Bad Request` (validation error)
-
-```json
-{
-  "ok": false,
-  "error": "VALIDATION_ERROR",
-  "fields": {
-    "email": "Invalid email",
-    "name": "Name must be 2-60 characters"
-  }
-}
-```
-
-- `429 Too Many Requests` (optional rate limit)
-
-```json
-{
-  "ok": false,
-  "error": "RATE_LIMIT"
+  "items": [
+    {
+      "id": 1,
+      "price": "52.00",
+      "picture": "base64-bitmap-string",
+      "annotation": "Card annotation",
+      "description": "Card description",
+      "discount": 15
+    }
+  ]
 }
 ```
 
