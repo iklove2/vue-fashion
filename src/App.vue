@@ -77,7 +77,7 @@ onMounted(() => {
     </section>
 
     <section class="features container">
-      <article class="featureCard big">
+      <article class="featureCard">
         <h3>30% OFF</h3>
         <p>FOR WOMEN</p>
       </article>
@@ -102,9 +102,15 @@ onMounted(() => {
       </div>
       <div class="grid">
         <article v-for="card in cards" :key="card.id" class="product">
-          <div class="thumb" :style="{ backgroundImage: `url(${bitmapToDataUri(card.picture)})` }">
+          <div class="thumb thumbDynamic">
+            <img
+              v-if="card.picture"
+              class="thumbImg"
+              :src="bitmapToDataUri(card.picture)"
+              alt=""
+            />
             <div class="thumbOverlay">
-              <button class="addToCart">Add to Cart</button>
+              <button type="button" class="addToCart">Add to Cart</button>
             </div>
           </div>
           <div class="content">

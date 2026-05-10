@@ -7,75 +7,31 @@
 - Vue 3
 - Vite
 - CSS
-- Django + SQLite
-- Docker Compose + Nginx
+- Django + SQLite (backend в каталоге `backend/`)
 
 ## Запуск локально
+
+Фронт:
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Docker (frontend + backend)
+Отдельно подними Django из каталога `backend/` (см. `backend/README.md`).
 
-```bash
-# first run only
-cp .env.example .env
-
-# start
-docker compose up -d --build
-```
-
-По умолчанию приложение будет доступно на `http://localhost:8081`.
-
-### Настройка портов и домена
-
-Если на сервере уже крутится другой Django/прокси, просто поменяй порт фронта в `.env`:
-
-```env
-WEB_PORT=8081
-DEBUG=False
-ALLOWED_HOSTS=your-domain.com,localhost,127.0.0.1
-```
-
-- `WEB_PORT` - внешний порт контейнера `web` (меняй, чтобы не конфликтовать с другими сервисами).
-- `DEBUG` - режим Django.
-- `ALLOWED_HOSTS` - разрешенные хосты Django (через запятую).
-
-`backend` не публикуется наружу и доступен только внутри docker-сети, поэтому с другими Django по порту `8000` не конфликтует.
-
-### Полезные команды
-
-```bash
-# Остановить контейнеры
-docker compose down
-
-# Остановить и удалить volume с SQLite
-docker compose down -v
-
-# Логи
-docker compose logs -f
-```
-
-### Пример для внешнего nginx в docker
-
-Если у тебя уже есть отдельный nginx-контейнер как reverse proxy, проксируй на:
-
-- `http://<host-ip>:WEB_PORT`
-
-Например, при `WEB_PORT=8081`:
-
-```nginx
-location / {
-    proxy_pass http://host.docker.internal:8081;
-}
-```
+При `npm run dev` Vite проксирует запросы `/api/*` на `http://127.0.0.1:8000` — см. `vite.config.js`.
 
 ## API endpoints
 
-- `GET /api/` - описание API.
-- `GET /api/cards/` - карточки в формате JSON:
+- `GET /api/` — описание API.
+- **`/api/customers/`** — покупатели (полный CRUD, поля в JSON в **camelCase**):
+  - `GET /api/customers/` — список
+  - `POST /api/customers/` — создать
+  - `GET /api/customers/<id>/` — один объект
+  - `PUT` / `PATCH /api/customers/<id>/` — изменить
+  - `DELETE /api/customers/<id>/` — удалить
+- `GET /api/cards/` — карточки в формате JSON:
 
 ```json
 {
@@ -91,6 +47,23 @@ location / {
   ]
 }
 ```
+
+Пример тела запроса `POST /api/customers/` или ответа `GET`:
+
+```json
+{
+  "id": 1,
+  "firstName": "Иван",
+  "lastName": "Петров",
+  "email": "ivan@example.com",
+  "phone": "+79161234567",
+  "birthDate": "1990-06-15",
+  "purchasedCardIds": [1, 2, 3],
+  "purchasedCardsSummary": "ELLERY … (#1), … (#2)"
+}
+```
+
+`purchasedCardIds` — реальные **id** из `/api/cards/` (что человек «купил»). В ответе дополнительно есть строка **`purchasedCardsSummary`** (только чтение). При `POST` поле `id` не передаётся. `email` уникален.
 
 # Vue 3 + Vite
 
